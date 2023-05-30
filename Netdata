@@ -1,0 +1,63 @@
+#netdata install 
+  bash <(curl -Ss https://my-netdata.io/kickstart.sh)
+  systemctl status netdata
+  sudo nano /etc/netdata/netdata.conf or nano /opt/netdata/netdata-configs/netdata.conf
+
+  [web]
+      bind to = 10.1.1.1:19999 localhost:19999
+
+#Debian/Ubuntu:
+  sudo apt install nginx apache2-utils
+
+#Redhat/CentOS/Fedora:
+  sudo yum install nginx apache2-utils
+
+#Step 2.2 - Setup Authentication Run this command to create a username-password pair:
+
+  sudo htpasswd -c /etc/nginx/.htpasswd <user1>
+
+#Press Enter and type the password for user1 at the prompts.
+#Confirm that the username-password pair has been created by running:
+  cat /etc/nginx/.htpasswd
+
+
+#Step 2.3 - Configuration
+#Open your NGINX configuration file (nginx.conf) and find the http block. (Your nginx.conf file usually is located in /usr/local/nginx/conf, /etc/nginx, or /usr/local/etc/nginx)
+#Add the following lines into your http block:
+
+  upstream backend {
+     server 127.0.0.1:19999;
+     keepalive 64;
+  }
+
+  server {
+     listen <10.0.0.1>:80;
+     server_name <example.com>;
+
+     auth_basic "Protected";
+     auth_basic_user_file /etc/nginx/.htpasswd;
+
+     location / {
+       proxy_set_header X-Forwarded-Host $host;
+       proxy_set_header X-Forwarded-Server $host;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_pass http://backend;
+       proxy_http_version 1.1;
+       proxy_pass_request_headers on;
+       proxy_set_header Connection "keep-alive";
+       proxy_store off;
+     }
+  }
+
+
+#Replace <10.0.0.1> with your public IP Address.
+#Replace <example.com> with your own domain.
+#Save the configuration file and close it. Then verify the configuration to check if everything is OK.
+
+  sudo nginx -t
+
+#Go ahead and reload NGINX if there was no error:
+
+  sudo systemctl reload nginx
+
+
